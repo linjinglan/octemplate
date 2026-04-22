@@ -1,0 +1,160 @@
+{
+  "models": {
+    "mode": "replace",
+    "providers": {
+      "ksyun": {
+        "baseUrl": "https://kspmas.ksyun.com/v1",
+        "apiKey": "${KSYUN_API_KEY}",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "mimo-v2-pro",
+            "name": "mimo-v2-pro",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 65536
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ksyun/mimo-v2-pro",
+		    "fallbacks": [
+			    "ksyun/mimo-v2-flash"
+		    ]
+      },
+	    "maxConcurrent": 4,
+	    "subagents": {
+		    "maxConcurrent": 8
+	    },
+      "models": {
+		    "ksyun/mimo-v2-pro":{},
+		    "ksyun/mimo-v2-flash":{}
+      },
+      "workspace": "C:\\Users\\winAdmin\\.openclaw\\workspace"
+    },
+	  "list": [
+  		{
+  			"id": "main",
+  			"name": "main",
+  			"workspace": "C:\\Users\\winAdmin\\.openclaw\\ws_main",
+  			"agentDir": "C:\\Users\\winAdmin\\.openclaw\\agents\\main\\agent",
+  			"model": {
+  				"primary": "ksyun/mimo-v2-pro"
+  			}
+  		}
+	  ]
+  },
+  "bindings": [
+	{
+		"agentId": "main",
+		"match": {
+			"channel": "wps-xiezuo",
+			"accountId": "main"
+		}
+	}
+  ],
+  "tools": {
+    "profile": "full",
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "duckduckgo"
+      }
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "session": {
+    "dmScope": "per-account-channel-peer"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "boot-md": {
+          "enabled": true
+        },
+        "bootstrap-extra-files": {
+          "enabled": true
+        },
+        "command-logger": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "controlUi": {
+  	  "enabled": true,
+  	  "allowedOrigins": [
+  		  "http://localhost:18789",
+        "http://127.0.0.1:18789",
+        "https://claw-dev.testplus.cn",
+        "https://claw.testplus.cn",
+        "http://------ip.address------:18789"
+  	  ],
+      "allowInsecureAuth": true,
+  	  "dangerouslyDisableDeviceAuth": true
+    },
+    "auth": {
+      "mode": "token",
+      "token": "ee5b2094add1929f839decfc958db0daf6cd9c26a52e2b52"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "contacts.add",
+        "calendar.add",
+        "reminders.add",
+        "sms.send"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "duckduckgo": {
+        "enabled": true,
+        "config": {}
+      }
+    }
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.3.28",
+    "lastTouchedAt": "2026-04-22T17:26:24.547Z"
+  },
+  "discovery": {
+	  "mdns": {
+		  "mode": "off"
+	  }
+  }
+}
