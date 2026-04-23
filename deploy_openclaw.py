@@ -90,6 +90,28 @@ IP_PLACEHOLDER = "------ip.address------"
 # 支持的 shell profile 文件
 SHELL_PROFILES = [".bashrc", ".zshrc", ".profile", ".bash_profile"]
 
+
+def restart_in_new_shell() -> None:
+    """重启当前脚本, 在新终端窗口中执行后续命令."""
+    if sys.platform == "win32":
+        # Windows 11: 新打开一个 Windows Terminal 窗口
+        python_exe = sys.executable
+        script = os.path.abspath(sys.argv[0])
+        remaining_args = [a for a in sys.argv[1:] if a != "--env-done"]
+        args_str = " ".join(remaining_args)
+        cmd_line = f'"{python_exe}" "{script}" {args_str} --env-done'
+        subprocess.Popen(
+            f'wt new-tab --title "OpenClaw部署" cmd.exe /k {cmd_line}',
+            shell=True,
+        )
+        print("已在新终端窗口中继续执行.")
+    else:
+        # macOS/Linux: 直接 subprocess.run
+        cmd_args = [sys.executable, script] + remaining_args + ["--env-done"]
+        result = subprocess.run(cmd_args)
+        sys.exit(result.returncode)
+
+
 # 依赖检查列表
 DEPS = [
     ("git", "版本管理"),
@@ -154,11 +176,11 @@ def replace_ip_placeholder(config: dict, ip: str) -> None:
 
 def set_env_variable(key: str, value: str) -> None:
     """设置系统环境变量, 跨平台支持."""
-    # 先设置当前进程的环境变量
+    # 设置当前进程的环境变量, 子进程自动继承
     os.environ[key] = value
 
     if sys.platform == "win32":
-        # Windows: 使用 setx 写入注册表 (持久化)
+        # Windows: 使用 setx 写入注册表 (持久化, 下次新终端生效)
         print(f"正在设置 Windows 环境变量 {key} ...")
         result = subprocess.run(
             f"setx {key} \"{value}\"",
@@ -167,7 +189,7 @@ def set_env_variable(key: str, value: str) -> None:
             text=True,
         )
         if result.returncode == 0:
-            print("环境变量设置成功 (重启终端后生效).")
+            print("环境变量已设置 (持久化到注册表).")
         else:
             print(f"警告: setx 执行失败: {result.stderr.strip()}")
     else:
@@ -181,7 +203,6 @@ def set_env_variable(key: str, value: str) -> None:
             if p.exists():
                 profile_path = p
                 break
-        # 如果都没有, 默认 .bashrc
         if profile_path is None:
             profile_path = Path(home) / ".bashrc"
 
@@ -193,7 +214,7 @@ def set_env_variable(key: str, value: str) -> None:
         if f"export {key}" not in content:
             with open(profile_path, "a", encoding="utf-8") as f:
                 f.write(export_line)
-            print(f"环境变量已写入 {profile_path} (重启终端后生效).")
+            print(f"环境变量已写入 {profile_path} (需要重启 shell 生效).")
         else:
             # 已存在, 更新值
             lines = content.splitlines()
@@ -204,11 +225,11 @@ def set_env_variable(key: str, value: str) -> None:
                 else:
                     new_lines.append(line)
             profile_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-            print(f"环境变量已更新 {profile_path} (重启终端后生效).")
+            print(f"环境变量已更新 {profile_path} (下次新终端生效).")
 
 
-def sync_config_from_git(cleanup: bool = False) -> Path:
-    """从 GitHub 仓库下载配置并复制到 openclaw 目录, 返回克隆目录."""
+def clone_repo() -> Path:
+    """克隆或更新 GitHub 仓库, 返回克隆目录."""
     repo_url = "https://github.com/linjinglan/octemplate.git"
     download_dir = Path.home() / "Downloads"
     clone_target = download_dir / "octemplate"
@@ -216,7 +237,6 @@ def sync_config_from_git(cleanup: bool = False) -> Path:
     # 确保 Downloads 目录存在
     download_dir.mkdir(parents=True, exist_ok=True)
 
-    # 克隆 / 更新仓库 (git 命令跨平台通用)
     # 检查 .git 目录是否存在, 避免空目录导致 git pull 失败
     is_valid_repo = clone_target.exists() and (clone_target / ".git").exists()
     if is_valid_repo:
@@ -235,6 +255,11 @@ def sync_config_from_git(cleanup: bool = False) -> Path:
         except DeployError as e:
             raise DeployError(f"克隆仓库失败: {e}")
 
+    return clone_target
+
+
+def apply_config_from_repo(clone_target: Path) -> None:
+    """将克隆仓库中的配置复制到 openclaw 目录."""
     # 复制 skills 目录到 ~/.openclaw/
     openclaw_dir = Path.home() / ".openclaw"
     openclaw_dir.mkdir(parents=True, exist_ok=True)
@@ -286,11 +311,20 @@ def sync_config_from_git(cleanup: bool = False) -> Path:
     else:
         print(f"警告: 仓库中不存在 {repo_config_path}, 跳过合并.")
 
-    # 清理临时克隆目录
-    if cleanup and clone_target.exists():
+
+def cleanup_repo(clone_target: Path) -> None:
+    """清理临时克隆目录."""
+    if clone_target.exists():
         print(f"正在清理临时目录 {clone_target} ...")
         shutil.rmtree(str(clone_target))
 
+
+def sync_config_from_git(cleanup: bool = False) -> Path:
+    """从 GitHub 仓库下载配置并复制到 openclaw 目录, 返回克隆目录."""
+    clone_target = clone_repo()
+    apply_config_from_repo(clone_target)
+    if cleanup:
+        cleanup_repo(clone_target)
     print("\n配置同步完成.\n")
     return clone_target
 
@@ -352,7 +386,7 @@ def install_channel_plugin(channel: str, clone_target: Path) -> None:
                     tgz_path = tgz_files[0]
                     print(f"正在安装插件: {tgz_path}")
                     run(
-                        f"openclaw plugins install \"{tgz_path}\"",
+                        f"cd \"{plugin_dir}\" && openclaw plugins install \"{tgz_path.name}\"",
                         check=True,
                         description="安装 WPS 协作插件",
                     )
@@ -375,6 +409,11 @@ def install_channel_plugin(channel: str, clone_target: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="OpenClaw 部署助手")
+    parser.add_argument(
+        "--env-done",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument(
         "--version",
         required=True,
@@ -406,13 +445,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # clone_target 用于在渠道插件安装和配置同步之间共享
+    clone_target = None
+
     # 检查运行环境
     if not check_environment():
         sys.exit(1)
 
     # 设置 KSYUN_API_KEY 环境变量
-    if args.ksyun_api_key:
+    if args.ksyun_api_key and not args.env_done:
         set_env_variable("KSYUN_API_KEY", args.ksyun_api_key)
+        print("环境变量已设置, 正在打开新终端窗口继续部署 ...\n")
+        restart_in_new_shell()
+        return  # 打开新窗口后退出当前进程
 
     # 确定目标版本
     target = normalize_version(args.version)
@@ -425,18 +470,30 @@ def main() -> None:
     else:
         installed = normalize_version(installed)
         print(f"当前已安装版本: {installed}")
-        if installed == target:
+        if target in installed:
             print("版本已满足要求, 跳过安装.\n")
             if not args.skip_onboard:
-                print("正在启动 onboarding 引导配置 ...\n")
-                result = subprocess.run("openclaw onboard --install-daemon", shell=True)
-                if result.returncode != 0:
-                    print("\n警告: onboarding 配置引导未完成 (退出码 {}).".format(result.returncode))
+                print("正在启动 onboarding 引导配置 ...")
+                print("请按照提示完成配置, 完成后按回车继续.\n")
+                subprocess.run("openclaw onboard --install-daemon", shell=True)
+                input("\n按回车键继续下一步操作 ...")
+                print()
             if not args.skip_sync:
                 try:
-                    clone_target = sync_config_from_git(args.cleanup)
+                    # 先克隆仓库
+                    clone_target = clone_repo()
+                    # 再安装渠道插件
                     if args.channel:
+                        print("=== 停止 openclaw gateway ===")
+                        run("openclaw gateway stop", description="停止 gateway")
                         install_channel_plugin(args.channel, clone_target)
+                    # 最后应用配置
+                    apply_config_from_repo(clone_target)
+                    if args.cleanup:
+                        cleanup_repo(clone_target)
+                    # 启动 gateway
+                    print("=== 启动 openclaw gateway ===")
+                    run("openclaw gateway start", description="启动 gateway")
                 except DeployError as e:
                     print(f"错误: 配置同步失败 - {e}")
                     sys.exit(1)
@@ -468,25 +525,36 @@ def main() -> None:
 
     # 4. 启动 onboarding
     if not args.skip_onboard:
-        print("正在启动 onboarding 引导配置 ...\n")
-        result = subprocess.run("openclaw onboard --install-daemon", shell=True)
-        if result.returncode != 0:
-            print("\n警告: onboarding 配置引导未完成 (退出码 {}).".format(result.returncode))
+        print("正在启动 onboarding 引导配置 ...")
+        print("请按照提示完成配置, 完成后按回车继续.\n")
+        subprocess.run("openclaw onboard --install-daemon", shell=True)
+        input("\n按回车键继续下一步操作 ...")
+        print()
 
-    # 5. 从 GitHub 同步配置
-    if not args.skip_sync:
-        try:
-            clone_target = sync_config_from_git(args.cleanup)
-        except DeployError as e:
-            print(f"错误: 配置同步失败 - {e}")
-            sys.exit(1)
-
-    # 6. 安装渠道插件
+    # 5. 安装渠道插件
     if args.channel and not args.skip_sync:
         try:
+            print("=== 停止 openclaw gateway ===")
+            run("openclaw gateway stop", description="停止 gateway")
+            clone_target = clone_repo()
             install_channel_plugin(args.channel, clone_target)
         except DeployError as e:
             print(f"错误: 渠道插件安装失败 - {e}")
+            sys.exit(1)
+
+    # 6. 从 GitHub 同步配置
+    if not args.skip_sync:
+        try:
+            if clone_target is None:
+                clone_target = clone_repo()
+            apply_config_from_repo(clone_target)
+            if args.cleanup:
+                cleanup_repo(clone_target)
+            # 启动 gateway
+            print("=== 启动 openclaw gateway ===")
+            run("openclaw gateway start", description="启动 gateway")
+        except DeployError as e:
+            print(f"错误: 配置同步失败 - {e}")
             sys.exit(1)
 
 
