@@ -1,0 +1,108 @@
+{
+// 配置会话隔离，默认为per-account-channel-peer，不可修改
+  "session": {
+    "dmScope": "per-account-channel-peer"
+  },
+
+
+// 定义多个agent（隔离工作空间和记忆）
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "default": true,
+        "workspace": "~/.openclaw/workspace",
+        "agentDir": "~/.openclaw/agents/main/agent"
+      },
+      {
+        "id": "wps-xiezuo-1",
+        "workspace": "~/.openclaw/workspace-wps-xiezuo-1",
+        "agentDir": "~/.openclaw/agents/wps-xiezuo-1/agent"
+      },
+      {
+        "id": "wps-xiezuo-2",
+        "workspace": "~/.openclaw/workspace-wps-xiezuo-2",
+        "agentDir": "~/.openclaw/agents/wps-xiezuo-2/agent"
+      }
+    ]
+  },
+
+
+// 配置WPS协作多机器人
+  "channels": {
+    "wps-xiezuo": {
+      "enabled": true,
+      "defaultAccountId": "default",  // 指定默认机器人
+      "accounts": {
+        "default": {
+          "enabled": true,
+          "appId": "<WPS_APP_ID_A>",
+          "appSecret": "<WPS_APP_SECRET_A>",
+          "baseUrl": "https://openapi.wps.cn",
+          "sdk": {
+            "enabled": true,
+            "logLevel": "info",
+            "connectTimeoutMs": 120000
+          },
+          "dmPolicy": "pairing",
+          "allowFrom": [],
+          "groupPolicy": "open"
+        },
+        "wps-xiezuo-1": {
+          "enabled": true,
+          "appId": "<WPS_APP_ID_B>",
+          "appSecret": "<WPS_APP_SECRET_B>",
+          "baseUrl": "https://openapi.wps.cn",
+          "sdk": {
+            "enabled": true,
+            "logLevel": "info",
+            "connectTimeoutMs": 120000
+          },
+          "dmPolicy": "pairing",
+          "allowFrom": [],
+          "groupPolicy": "open"
+        },
+        "wps-xiezuo-2": {
+          "enabled": true,
+          "appId": "<WPS_APP_ID_C>",
+          "appSecret": "<WPS_APP_SECRET_C>",
+          "baseUrl": "https://openapi.wps.cn",
+          "sdk": {
+            "enabled": true,
+            "logLevel": "info",
+            "connectTimeoutMs": 120000
+          },
+          "dmPolicy": "pairing",
+          "allowFrom": [],
+          "groupPolicy": "open"
+        }
+      }
+    }
+  },
+
+
+//路由绑定
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": {
+        "channel": "wps-xiezuo",
+        "accountId": "default"
+      }
+    },
+    {
+      "agentId": "wps-xiezuo-1",
+      "match": {
+        "channel": "wps-xiezuo",
+        "accountId": "wps-xiezuo-1"
+      }
+    },
+    {
+      "agentId": "wps-xiezuo-2",
+      "match": {
+        "channel": "wps-xiezuo",
+        "accountId": "wps-xiezuo-2"
+      }
+    }
+  ]
+}

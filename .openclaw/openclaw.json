@@ -59,14 +59,49 @@
 	  ]
   },
   "bindings": [
-	{
-		"agentId": "main",
-		"match": {
-			"channel": "wps-xiezuo",
-			"accountId": "main"
-		}
-	}
+    {
+      "agentId": "main",
+      "match": {
+        "channel": "wps-xiezuo",
+        "accountId": "main"
+      }
+    }
   ],
+  "channels": {
+    "wps-xiezuo": {
+      "enabled": true,
+      "appId": "xxxxxx",
+      "appSecret": "xxxxxx",
+      "baseUrl": "https://openapi.wps.cn",
+      "sdk": {
+        "enabled": true,
+        "logLevel": "info"
+      },
+      "dmPolicy": "pairing",
+      "allowFrom": [],
+      "groupPolicy": "open",
+      "instantAck": {
+        "enabled": true,
+        "text": "内容处理中，请稍候..."
+      },
+      "mcp": {
+        "enabled": true,
+        "mode": "app",
+        "toolAllowlist": [
+          "wps_im_message_send",
+          "wps_user_search",
+          "wps_user_get",
+          "wps_user_me",
+          "wps_im_chat_list",
+          "wps_im_chat_create",
+          "wps_im_message_recall",
+          "wps_calendar_event_create",
+          "wps_calendar_event_list",
+          "wps_calendar_free_busy_list"
+        ]
+      }
+    }
+  },
   "tools": {
     "profile": "full",
     "web": {
@@ -137,6 +172,7 @@
     }
   },
   "plugins": {
+    "allow": ["wps-xiezuo"],
     "entries": {
       "duckduckgo": {
         "enabled": true,
