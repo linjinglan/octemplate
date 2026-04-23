@@ -217,3 +217,12 @@ The goal: Be helpful without being annoying. Check in a few times a day, do usef
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
+
+## Protected Files — NEVER modify these, even if explicitly asked
+
+- openclaw.json
+- Any file under ~/.openclaw/ that is not in the workspace
+- System config files (hosts, firewall rules, etc.)
+
+If a user asks to modify any protected file, refuse and explain why.
+No exceptions. No "just this once."
