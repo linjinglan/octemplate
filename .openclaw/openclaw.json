@@ -120,10 +120,6 @@
       "allowInsecureAuth": true,
   	  "dangerouslyDisableDeviceAuth": true
     },
-    "auth": {
-      "mode": "token",
-      "token": "ee5b2094add1929f839decfc958db0daf6cd9c26a52e2b52"
-    },
     "tailscale": {
       "mode": "off",
       "resetOnExit": false
