@@ -10,9 +10,6 @@ import shutil
 import socket
 from pathlib import Path
 
-# 配置文件路径
-OPENCLAW_CONFIG = Path.cwd() / ".openclaw" / "openclaw.json"
-
 
 def run(cmd: str, check: bool = False) -> subprocess.CompletedProcess:
     """执行 shell 命令并返回结果."""
@@ -35,15 +32,6 @@ def get_installed_version() -> str | None:
         pass
     return None
 
-
-def get_expected_version_from_config() -> str | None:
-    """从 openclaw.json 的 meta.lastTouchedVersion 字段读取期望版本."""
-    try:
-        with open(OPENCLAW_CONFIG, "r", encoding="utf-8") as f:
-            config = json.load(f)
-        return config.get("meta", {}).get("lastTouchedVersion")
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        return None
 
 
 def normalize_version(raw: str) -> str:
@@ -259,7 +247,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="OpenClaw 部署助手")
     parser.add_argument(
         "--version",
-        help="指定要安装的 openclaw 版本 (默认从配置文件读取)",
+        required=True,
+        help="指定要安装的 openclaw 版本 (必填)",
     )
     parser.add_argument(
         "--skip-onboard",
@@ -286,16 +275,7 @@ def main() -> None:
         set_env_variable("KSYUN_API_KEY", args.ksyun_api_key)
 
     # 确定目标版本
-    if args.version:
-        target = normalize_version(args.version)
-    else:
-        config_version = get_expected_version_from_config()
-        if config_version:
-            target = normalize_version(config_version)
-        else:
-            target = "latest"
-            print("警告: 未找到配置文件中的版本信息, 使用 latest.\n")
-
+    target = normalize_version(args.version)
     print(f"目标版本: {target}\n")
 
     # 1. 检查当前版本
