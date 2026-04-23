@@ -111,7 +111,7 @@
     "controlUi": {
   	  "enabled": true,
   	  "allowedOrigins": [
-  		  "http://localhost:18789",
+  		"http://localhost:18789",
         "http://127.0.0.1:18789",
         "https://claw-dev.testplus.cn",
         "https://claw.testplus.cn",
@@ -119,10 +119,6 @@
   	  ],
       "allowInsecureAuth": true,
   	  "dangerouslyDisableDeviceAuth": true
-    },
-    "auth": {
-      "mode": "token",
-      "token": "ee5b2094add1929f839decfc958db0daf6cd9c26a52e2b52"
     },
     "tailscale": {
       "mode": "off",
@@ -147,10 +143,6 @@
         "config": {}
       }
     }
-  },
-  "meta": {
-    "lastTouchedVersion": "2026.3.28",
-    "lastTouchedAt": "2026-04-22T17:26:24.547Z"
   },
   "discovery": {
 	  "mdns": {
